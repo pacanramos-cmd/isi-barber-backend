@@ -57,6 +57,47 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+// ═════════════════════════════════════════════════════
+// REGISTER (CREAR USUARIO)
+// ═════════════════════════════════════════════════════
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    // verificar si existe usuario
+    const [exist] = await db.query(
+      "SELECT * FROM usuarios WHERE email = ?",
+      [email]
+    );
+
+    if (exist.length > 0) {
+      return res.status(409).json({ error: "Usuario ya existe" });
+    }
+
+    // encriptar contraseña
+    const hash = await bcrypt.hash(password, 10);
+
+    // crear usuario
+    const [result] = await db.query(
+      "INSERT INTO usuarios (nombre, email, password, rol, activo) VALUES (?, ?, ?, 'barbero', 1)",
+      [name, email, hash]
+    );
+
+    res.status(201).json({
+      message: "Usuario creado",
+      id: result.insertId
+    });
+
+  } catch (err) {
+    console.error("Error register:", err);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+});
+
 // POST /api/auth/cambiar-password
 app.post("/api/auth/cambiar-password", auth, async (req, res) => {
   try {
